@@ -1,2 +1,4 @@
 rootProject.name = 'shoes-store'
+include 'catalog'
+include 'cart'
 
