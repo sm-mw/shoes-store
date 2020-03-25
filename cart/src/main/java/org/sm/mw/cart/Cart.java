@@ -1,14 +1,28 @@
 package org.sm.mw.cart;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BlaBla {
+public class Cart {
 
     List<CartItem> items = new ArrayList<>();
+    Status status = Status.ACTIVE;
+    Instant lastModification;
+    Clock clock;
+
+    enum Status {ACTIVE, ABANDONED}
+
+    Cart(Clock clock) {
+        this.clock = clock;
+        this.lastModification = clock.instant();
+    }
 
     Result addItem(CartItem item) {
         items.add(item);
+        status = Status.ACTIVE;
         return Result.success();
     }
 
@@ -19,9 +33,16 @@ public class BlaBla {
         items.remove(item);
         return Result.success();
     }
-    
-    Result markAsAbandoned() {
-        return Result.failure();
+
+    boolean isAbandoned() {
+        return isAbandoned(clock.instant());
+    }
+
+    boolean isAbandoned(Instant afterTime) {
+        if (afterTime.isAfter(lastModification.plus(2, ChronoUnit.DAYS))) {
+            status = Status.ABANDONED;
+        }
+        return Status.ABANDONED == status;
     }
 
     Result applyPromoCode() {
