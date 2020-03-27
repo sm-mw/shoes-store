@@ -3,16 +3,19 @@ package org.sm.mw.cart;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class Cart {
 
     private List<CartItem> items = new ArrayList<>();
-    private Status status = Status.ACTIVE;
     private TimeProvider timeProvider;
     private Instant lastModified;
-
-    enum Status {ACTIVE, ABANDONED}
+    private boolean approved;
+    private Map<CartItem, ProductStockSnapshot> approvedItems = Collections.emptyMap();
 
     public Cart(TimeProvider timeProvider) {
         this.timeProvider = timeProvider;
@@ -20,49 +23,48 @@ public class Cart {
 
     }
 
-    public Instant whenLastModified() {
-        return lastModified;
-    }
-
     Result addItem(CartItem item) {
+        if (approved) {
+            return Result.failure();
+        }
         items.add(item);
-        markCartAsActive();
         updateLastModified();
         return Result.success();
     }
 
 
     Result removeItem(CartItem item) {
-        if (items.isEmpty()) {
+        if (items.isEmpty() || approved) {
             return Result.failure();
         }
+        //TODO: fix return when specified item is not added to cart - maja
         items.remove(item);
-        markCartAsActive();
         updateLastModified();
         return Result.success();
     }
 
     boolean isAbandoned() {
-        if (timeProvider.now().isAfter(lastModified.plus(2, ChronoUnit.DAYS))) {
-            status = Status.ABANDONED;
-        }
-        return Status.ABANDONED == status;
-    }
-
-    Result markAsAbandoned() {
-        return Result.failure();
+        return timeProvider.now().isAfter(lastModified.plus(2, ChronoUnit.DAYS));
     }
 
     Result applyPromoCode() {
         return Result.failure();
     }
 
-    private void updateLastModified() {
-        this.lastModified = timeProvider.now();
+
+    Result approve(StockStateSnapshot stockState) {
+        this.approved = true;
+        this.approvedItems = stockState.availableItems(this.items);
+        return Result.success();
     }
 
-    private void markCartAsActive() {
-        status = Status.ACTIVE;
+    Map<CartItem, ProductStockSnapshot> approved() {
+        return approvedItems;
+    }
+
+
+    private void updateLastModified() {
+        this.lastModified = timeProvider.now();
     }
 
     static class Result {
