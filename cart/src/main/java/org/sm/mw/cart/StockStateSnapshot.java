@@ -16,9 +16,10 @@ public class StockStateSnapshot {
     }
 
 
-    public Map<CartItem, ProductStockSnapshot> availableItems(List<CartItem> items) {
+    public List<ApprovedItem> availableItems(List<CartItem> items) {
         return items.stream().filter(this::isAvailable)
-                .collect(Collectors.toMap(Function.identity(), item -> availableProducts.get(item.productId())));
+                .map(item -> new ApprovedItem(item, availableProducts.get(item.productId()).reserved()))
+                .collect(Collectors.toList());
     }
 
     private boolean isAvailable(CartItem item) {

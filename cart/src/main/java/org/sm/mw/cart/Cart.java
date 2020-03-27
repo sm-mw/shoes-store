@@ -5,9 +5,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class Cart {
 
@@ -15,7 +12,7 @@ public class Cart {
     private TimeProvider timeProvider;
     private Instant lastModified;
     private boolean approved;
-    private Map<CartItem, ProductStockSnapshot> approvedItems = Collections.emptyMap();
+    private List<ApprovedItem> approvedItems = Collections.emptyList();
 
     public Cart(TimeProvider timeProvider) {
         this.timeProvider = timeProvider;
@@ -34,10 +31,9 @@ public class Cart {
 
 
     Result removeItem(CartItem item) {
-        if (items.isEmpty() || approved) {
+        if (items.isEmpty() || approved || !items.contains(item)) {
             return Result.failure();
         }
-        //TODO: fix return when specified item is not added to cart - maja
         items.remove(item);
         updateLastModified();
         return Result.success();
@@ -53,12 +49,15 @@ public class Cart {
 
 
     Result approve(StockStateSnapshot stockState) {
+        if (items.isEmpty()) {
+            return Result.failure();
+        }
         this.approved = true;
         this.approvedItems = stockState.availableItems(this.items);
         return Result.success();
     }
 
-    Map<CartItem, ProductStockSnapshot> approved() {
+    List<ApprovedItem> approved() {
         return approvedItems;
     }
 

@@ -35,4 +35,12 @@ public class CartItem {
         result = 31 * result + amount.hashCode();
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "CartItem{" +
+                "productId=" + productId +
+                ", amount=" + amount +
+                '}';
+    }
 }
