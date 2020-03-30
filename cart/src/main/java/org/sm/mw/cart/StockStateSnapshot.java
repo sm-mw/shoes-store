@@ -1,6 +1,5 @@
 package org.sm.mw.cart;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -12,17 +11,10 @@ public class StockStateSnapshot {
 
     public StockStateSnapshot(List<ProductStockSnapshot> availableProducts) {
         this.availableProducts = availableProducts.stream()
-                .collect(Collectors.toMap(ProductStockSnapshot::productId, Function.identity()));
+            .collect(Collectors.toMap(ProductStockSnapshot::productId, Function.identity()));
     }
 
-
-    public Map<CartItem, ProductStockSnapshot> availableItems(List<CartItem> items) {
-        return items.stream().filter(this::isAvailable)
-                .collect(Collectors.toMap(Function.identity(), item -> availableProducts.get(item.productId())));
-    }
-
-    private boolean isAvailable(CartItem item) {
-        return availableProducts.containsKey(item.productId())
-                && availableProducts.get(item.productId()).reserved() > 0;
+    public int amountAvailable(CartItem item) {
+        return availableProducts.getOrDefault(item.productId(), new ProductStockSnapshot(item.productId(), 0)).reserved();
     }
 }

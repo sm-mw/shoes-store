@@ -5,6 +5,8 @@ plugins {
 group 'org.sm.mw'
 version '1.0-SNAPSHOT'
 
+defaultTasks('clean', 'assemble', 'test')
+
 sourceCompatibility = 1.8
 
 repositories {

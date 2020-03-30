@@ -5,6 +5,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import org.sm.mw.cart.discount.DiscountPolicy;
+import org.sm.mw.cart.discount.NoDiscountPolicy;
+import org.sm.mw.cart.snapshot.CartSnapshot;
 import java.util.Map;
 
 public class Cart {
@@ -13,16 +17,12 @@ public class Cart {
     private TimeProvider timeProvider;
     private Instant lastModified;
     private boolean approved;
-    private Map<CartItem, ProductStockSnapshot> approvedItems = Collections.emptyMap();
+    private List<ApprovedItemSnapshot> approvedItemSnapshots = Collections.emptyList();
+    private DiscountPolicy discountPolicy = new NoDiscountPolicy();
 
     public Cart(TimeProvider timeProvider) {
         this.timeProvider = timeProvider;
         lastModified = timeProvider.now();
-
-    }
-
-    public Map<CartItem, ProductStockSnapshot> approvedItems() {
-        return this.approvedItems;
     }
 
     Result addItem(CartItem item) {
@@ -34,12 +34,10 @@ public class Cart {
         return Result.success();
     }
 
-
     Result removeItem(CartItem item) {
-        if (items.isEmpty() || approved) {
+        if (items.isEmpty() || approved || !items.contains(item)) {
             return Result.failure();
         }
-        //TODO: fix return when specified item is not added to cart - maja
         items.remove(item);
         updateLastModified();
         return Result.success();
@@ -49,24 +47,38 @@ public class Cart {
         return timeProvider.now().isAfter(lastModified.plus(2, ChronoUnit.DAYS));
     }
 
-    Result applyPromoCode() {
-        return Result.failure();
-    }
-
-
-    Result approve(StockStateSnapshot stockState) {
-        this.approved = true;
-        this.approvedItems = stockState.availableItems(this.items);
+    Result applyDiscount(DiscountPolicy discountPolicy) {
+        this.discountPolicy = discountPolicy;
         return Result.success();
     }
 
-    Map<CartItem, ProductStockSnapshot> approved() {
-        return approvedItems;
+    Result approve(StockStateSnapshot stockState) {
+        if (items.isEmpty()) {
+            return Result.failure();
+        }
+        this.approved = true;
+
+        this.approvedItemSnapshots = this.items.stream()
+            .filter(item -> stockState.amountAvailable(item) > 0)
+            .map(item -> new ApprovedItemSnapshot(item.snapshot(discountPolicy.discount(item)), stockState.amountAvailable(item)))
+            .collect(Collectors.toList());
+
+        return Result.success();
     }
 
+    List<ApprovedItemSnapshot> approved() {
+        return approvedItemSnapshots;
+    }
 
     private void updateLastModified() {
         this.lastModified = timeProvider.now();
+    }
+
+    public CartSnapshot cartSummary() {
+        return new CartSnapshot(this.items.stream()
+            .map(cartItem ->
+                cartItem.snapshot(discountPolicy.discount(cartItem)))
+            .collect(Collectors.toList()));
     }
 
     static class Result {
@@ -88,6 +100,5 @@ public class Cart {
         static Result failure() {
             return new Result(false);
         }
-
     }
 }
