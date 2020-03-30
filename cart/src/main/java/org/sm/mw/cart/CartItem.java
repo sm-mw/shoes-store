@@ -3,7 +3,7 @@ package org.sm.mw.cart;
 import java.math.BigDecimal;
 import org.sm.mw.cart.snapshot.CartItemSnapshot;
 
-class CartItem implements Discountable {
+public class CartItem implements Discountable {
 
     private final Integer productId;
     private final Integer amount;

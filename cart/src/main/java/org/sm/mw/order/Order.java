@@ -1,26 +1,25 @@
 package org.sm.mw.order;
 
+import org.sm.mw.cart.ApprovedItemSnapshot;
 import org.sm.mw.cart.Cart;
-import org.sm.mw.cart.CartItem;
-import org.sm.mw.cart.ProductStockSnapshot;
 
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 
 public class Order {
 
 
-    private Map<CartItem, ProductStockSnapshot> items = Collections.emptyMap();
+    private List<ApprovedItemSnapshot> items = Collections.emptyList();
 
     public Order(Cart cart) {
-        this.items =  cart.approvedItems();
+        this.items = cart.approved();
     }
 
     public boolean create() {
-        return false;
+        return !this.items().isEmpty();
     }
 
-    public Map<CartItem, ProductStockSnapshot> items() {
+    List<ApprovedItemSnapshot> items() {
         return items;
     }
 }

@@ -25,6 +25,10 @@ public class Cart {
         lastModified = timeProvider.now();
     }
 
+    public List<ApprovedItemSnapshot> approved() {
+        return approvedItemSnapshots;
+    }
+
     Result addItem(CartItem item) {
         if (approved) {
             return Result.failure();
@@ -64,10 +68,6 @@ public class Cart {
             .collect(Collectors.toList());
 
         return Result.success();
-    }
-
-    List<ApprovedItemSnapshot> approved() {
-        return approvedItemSnapshots;
     }
 
     private void updateLastModified() {
