@@ -15,5 +15,6 @@ class OrderTest extends Specification {
 
         then:
         created
+        order.items().size() > 0
     }
 }

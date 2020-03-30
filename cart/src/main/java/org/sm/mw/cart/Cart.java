@@ -6,8 +6,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class Cart {
 
@@ -21,6 +19,10 @@ public class Cart {
         this.timeProvider = timeProvider;
         lastModified = timeProvider.now();
 
+    }
+
+    public Map<CartItem, ProductStockSnapshot> approvedItems() {
+        return this.approvedItems;
     }
 
     Result addItem(CartItem item) {
