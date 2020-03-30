@@ -1,18 +1,23 @@
 package org.sm.mw.cart
 
+import org.sm.mw.cart.discount.DiscountPolicy
+import org.sm.mw.cart.discount.WholeCartDiscountPolicy
+import org.sm.mw.cart.snapshot.CartItemSnapshot
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.stream.Collectors
 
 class CartSpec extends Specification {
 
     TimeProvider timeProvider = Mock(TimeProvider)
     def fixedTime = Instant.parse("2020-03-26T18:35:24.00Z")
-    def item1 = new CartItem(1, 1)
-    def item2 = new CartItem(2, 3)
-    def item3 = new CartItem(3, 4)
-    def item4 = new CartItem(4, 1)
+    def static item1 = new CartItem(1, 1, new BigDecimal("123.99"))
+    def static item2 = new CartItem(2, 3, new BigDecimal("123.99"))
+    def static item3 = new CartItem(3, 4, new BigDecimal("123.99"))
+    def static item4 = new CartItem(4, 1, new BigDecimal("123.99"))
 
 
     def setup() {
@@ -48,6 +53,7 @@ class CartSpec extends Specification {
         def subject = new Cart(timeProvider)
 
         when:
+        subject.addItem(item2)
         def result = subject.removeItem(item1)
 
         then:
@@ -122,31 +128,35 @@ class CartSpec extends Specification {
     def "should apply promo code when provided"() {
         given:
         def subject = new Cart(timeProvider)
+        subject.addItem(new CartItem(1, 1, new BigDecimal("100.00")))
+        subject.addItem(new CartItem(2, 1, new BigDecimal("200.00")))
+
+        DiscountPolicy p = new WholeCartDiscountPolicy(new BigDecimal("20.0"))
 
         when:
-        def result = subject.applyPromoCode()
+        def result = subject.applyDiscount(p)
 
         then:
         result.isSuccessful()
+
+        when:
+        def cartSnapshot = subject.cartSummary()
+
+        then:
+        cartSnapshot.items() as Set == [new CartItemSnapshot(1, 1, new BigDecimal("100.00"), new BigDecimal("80.00")),
+                                        new CartItemSnapshot(2, 1, new BigDecimal("200.00"), new BigDecimal("160.00"))] as Set
     }
 
-    def "should approve cart when all products are available"() {
+    @Unroll
+    def "should approve cart"() {
         given:
         def subject = new Cart(timeProvider)
         subject.addItem(item1)
         subject.addItem(item2)
         subject.addItem(item3)
-        def productStockSnapshotOfItem1 = new ProductStockSnapshot(1, 1)
-        def productStockSnapshotOfItem2 = new ProductStockSnapshot(2, 3)
-        def productStockSnapshotOfItem3 = new ProductStockSnapshot(3, 3)
-        StockStateSnapshot stockState = new StockStateSnapshot(
-                List.of(productStockSnapshotOfItem1,
-                        productStockSnapshotOfItem2,
-                        productStockSnapshotOfItem3))
 
         when:
-        def isApproved = subject.approve(stockState)
-
+        def isApproved = subject.approve(stockStateSnapshot)
         then:
         isApproved.isSuccessful()
         !subject.addItem(item4).isSuccessful()
@@ -154,59 +164,94 @@ class CartSpec extends Specification {
         when:
         def approvedItems = subject.approved()
         then:
-        approvedItems == Map.of(
-                item1, productStockSnapshotOfItem1,
-                item2, productStockSnapshotOfItem2,
-                item3, productStockSnapshotOfItem3
-        )
+        approvedItems == expectedItems
+
+        where:
+        stockStateSnapshot << [
+                new StockStateSnapshot(
+                        [
+                                new ProductStockSnapshot(1, 1),
+                                new ProductStockSnapshot(2, 3),
+                                new ProductStockSnapshot(3, 4)
+                        ]
+                ),
+                new StockStateSnapshot(
+                        [
+                                new ProductStockSnapshot(1, 1),
+                                new ProductStockSnapshot(2, 0),
+                                new ProductStockSnapshot(3, 4)
+                        ]
+                ),
+                new StockStateSnapshot(
+                        [
+                                new ProductStockSnapshot(1, 1),
+                                new ProductStockSnapshot(2, 3),
+                                new ProductStockSnapshot(3, 2)
+                        ]
+                )
+        ]
+        expectedItems << [
+                [
+                        new ApprovedItemSnapshot(item1.snapshot(new BigDecimal("123.99")), 1),
+                        new ApprovedItemSnapshot(item2.snapshot(new BigDecimal("123.99")), 3),
+                        new ApprovedItemSnapshot(item3.snapshot(new BigDecimal("123.99")), 4)
+                ],
+                [
+                        new ApprovedItemSnapshot(item1.snapshot(new BigDecimal("123.99")), 1),
+                        new ApprovedItemSnapshot(item3.snapshot(new BigDecimal("123.99")), 4)
+                ],
+                [
+                        new ApprovedItemSnapshot(item1.snapshot(new BigDecimal("123.99")), 1),
+                        new ApprovedItemSnapshot(item2.snapshot(new BigDecimal("123.99")), 3),
+                        new ApprovedItemSnapshot(item3.snapshot(new BigDecimal("123.99")), 2)
+                ],
+        ]
     }
 
-    def "should approve cart when not all items are available"() {
+    def "should apply discount when cart is approved "() {
         given:
         def subject = new Cart(timeProvider)
-        subject.addItem(item1)
-        subject.addItem(item2)
-        subject.addItem(item3)
-        def productSnapshotOfItem1 = new ProductStockSnapshot(1, 1)
-        def productSnapshotOfItem2 = new ProductStockSnapshot(2, 0)
-        def productSnapshotOfItem3 = new ProductStockSnapshot(3, 4)
-        StockStateSnapshot stockState = new StockStateSnapshot(
-                List.of(productSnapshotOfItem1,
-                        productSnapshotOfItem2,
-                        productSnapshotOfItem3))
+        subject.addItem(new CartItem(1, 1, new BigDecimal("100.00")))
+        subject.addItem(new CartItem(2, 1, new BigDecimal("200.00")))
 
-        when:
-        def isApproved = subject.approve(stockState)
+        DiscountPolicy p = new WholeCartDiscountPolicy(new BigDecimal("20.0"))
+        subject.applyDiscount(p)
 
-        then:
-        isApproved.isSuccessful()
-        when:
-        def approvedItems = subject.approved()
-        then:
-        approvedItems == Map.of(
-                item1, productSnapshotOfItem1,
-                item3, productSnapshotOfItem3
+        def stockState = new StockStateSnapshot(
+                [
+                        new ProductStockSnapshot(1, 1),
+                        new ProductStockSnapshot(2, 3),
+                        new ProductStockSnapshot(3, 4)
+                ]
         )
+
+        when:
+        def result = subject.approve(stockState)
+
+        then:
+        result.isSuccessful()
+
+        when:
+        def approvedCartItems = subject.approved()
+                .stream()
+                .map(approvedItem -> approvedItem.cartItem())
+                .collect(Collectors.toList())
+
+        then:
+        approvedCartItems as Set == [new CartItemSnapshot(1, 1, new BigDecimal("100.00"), new BigDecimal("80.00")),
+                                     new CartItemSnapshot(2, 1, new BigDecimal("200.00"), new BigDecimal("160.00"))] as Set
+
+
     }
 
-    def "should approve cart when 2 out of 4 the same items are available"() {
+    def "should not approve when empty cart"() {
         given:
         def subject = new Cart(timeProvider)
 
-        subject.addItem(item3)
-        def availableItem3 = new ProductStockSnapshot(3, 2)
-        StockStateSnapshot stockState = new StockStateSnapshot(
-                List.of(availableItem3))
         when:
-        def isApproved = subject.approve(stockState)
+        def approved = subject.approve(new StockStateSnapshot(Collections.emptyList()))
 
         then:
-        isApproved.isSuccessful()
-        when:
-        def approvedItems = subject.approved()
-        then:
-        approvedItems == Map.of(item3, availableItem3)
+        !approved.isSuccessful()
     }
-
-
 }
