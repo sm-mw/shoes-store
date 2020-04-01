@@ -19,6 +19,6 @@ test {
 dependencies {
     testCompile group: 'org.spockframework', name: 'spock-core', version: '2.0-M2-groovy-3.0'
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.1')
-    compile 'org.objenesis:objenesis:1.4'
-    compile "cglib:cglib:2.2"
+//    compile 'org.objenesis:objenesis:1.4'
+//    compile "cglib:cglib:2.2"
 }

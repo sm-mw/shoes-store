@@ -1,25 +1,25 @@
 package org.sm.mw.order;
 
 import org.sm.mw.cart.ApprovedItemSnapshot;
-import org.sm.mw.cart.Cart;
 
-import java.util.Collections;
 import java.util.List;
 
 public class Order {
 
+    private List<ApprovedItemSnapshot> items;
 
-    private List<ApprovedItemSnapshot> items = Collections.emptyList();
-
-    public Order(Cart cart) {
-        this.items = cart.approved();
+    private Order(List<ApprovedItemSnapshot> items) {
+        this.items = items;
     }
 
-    public boolean create() {
-        return !this.items().isEmpty();
+    static Order create(List<ApprovedItemSnapshot> items) {
+        if(items == null || items.isEmpty()){
+            throw new OrderCreationException();
+        }
+        return new Order(items);
     }
 
-    List<ApprovedItemSnapshot> items() {
-        return items;
+    int itemsCount() {
+        return this.items.size();
     }
 }
