@@ -15,6 +15,10 @@ public class CartItemSnapshot {
         this.promoPrice = promoPrice;
     }
 
+    public BigDecimal promoPrice() {
+        return promoPrice;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -9,6 +9,8 @@ import java.util.stream.Collectors;
 import org.sm.mw.cart.discount.DiscountPolicy;
 import org.sm.mw.cart.discount.NoDiscountPolicy;
 import org.sm.mw.cart.snapshot.CartSnapshot;
+import org.sm.mw.commons.Result;
+
 import java.util.Map;
 
 public class Cart {
@@ -81,24 +83,4 @@ public class Cart {
             .collect(Collectors.toList()));
     }
 
-    static class Result {
-
-        private boolean successful;
-
-        private Result(boolean isSuccess) {
-            this.successful = isSuccess;
-        }
-
-        boolean isSuccessful() {
-            return this.successful;
-        }
-
-        static Result success() {
-            return new Result(true);
-        }
-
-        static Result failure() {
-            return new Result(false);
-        }
-    }
 }
