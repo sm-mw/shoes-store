@@ -2,6 +2,7 @@ package org.sm.mw.order
 
 import org.sm.mw.cart.ApprovedItemSnapshot
 import org.sm.mw.cart.snapshot.CartItemSnapshot
+import org.sm.mw.order.delivery.DeliveryProvider
 import spock.lang.Specification
 
 class OrderSpec extends Specification {
@@ -31,7 +32,7 @@ class OrderSpec extends Specification {
         def order = Order.create(apprivedItemsSnapshot)
 
         when:
-        def applyResult = order.applyDelivery()
+        def applyResult = order.applyDelivery(DeliveryProvider.COURIER)
 
         then:
         applyResult.isSuccessful()
