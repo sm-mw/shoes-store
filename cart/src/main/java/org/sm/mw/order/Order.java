@@ -23,6 +23,15 @@ public class Order implements Deliverable {
         return new Order(items);
     }
 
+    public OrderDeliverySnapshot showDeliveryOptions() {
+
+        if(itemsCount() > 5) {
+            return OrderDeliverySnapshot.create();
+        }
+
+        return null;
+    }
+
     int itemsCount() {
         return this.items.size();
     }

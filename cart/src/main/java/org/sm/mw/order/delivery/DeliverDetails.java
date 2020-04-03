@@ -10,8 +10,7 @@ public class DeliverDetails {
     this.deliveryPrice = deliveryPrice;
   }
 
-  public BigDecimal deliveryPrice()
-  {
+  public BigDecimal deliveryPrice() {
     return deliveryPrice;
   }
 }

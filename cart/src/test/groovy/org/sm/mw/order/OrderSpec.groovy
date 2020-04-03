@@ -2,6 +2,7 @@ package org.sm.mw.order
 
 import org.sm.mw.cart.ApprovedItemSnapshot
 import org.sm.mw.cart.snapshot.CartItemSnapshot
+import org.sm.mw.order.delivery.DeliveryPolicy
 import org.sm.mw.order.delivery.DeliveryProvider
 import spock.lang.Specification
 
@@ -88,9 +89,9 @@ class OrderSpec extends Specification {
         def approvedItems = [new ApprovedItemSnapshot(
                 new CartItemSnapshot(1, 1, 1.0, 0.5), 1),
                              new ApprovedItemSnapshot(
-                 new CartItemSnapshot(2, 1, 2.0, 2.0), 1),
+                                     new CartItemSnapshot(2, 1, 2.0, 2.0), 1),
                              new ApprovedItemSnapshot(
-                 new CartItemSnapshot(3, 1, 3.0, 3.0), 1)]
+                                     new CartItemSnapshot(3, 1, 3.0, 3.0), 1)]
 
         def order = Order.create(approvedItems)
 
@@ -99,6 +100,32 @@ class OrderSpec extends Specification {
 
         then:
         !applyResult.isSuccessful()
+
+    }
+
+    def "should disable parcel locker when items amount is bigger than 5"() {
+        given:
+        def approvedItems = [new ApprovedItemSnapshot(
+                new CartItemSnapshot(1, 1, 1.0, 0.5), 1),
+                             new ApprovedItemSnapshot(
+                                     new CartItemSnapshot(2, 1, 2.0, 2.0), 1),
+                             new ApprovedItemSnapshot(
+                                     new CartItemSnapshot(3, 1, 3.0, 3.0), 1),
+                             new ApprovedItemSnapshot(
+                                     new CartItemSnapshot(1, 1, 1.0, 0.5), 1),
+                             new ApprovedItemSnapshot(
+                                     new CartItemSnapshot(2, 1, 2.0, 2.0), 1),
+                             new ApprovedItemSnapshot(
+                                     new CartItemSnapshot(3, 1, 3.0, 3.0), 1)]
+
+        when:
+
+        def order = Order.create(approvedItems)
+        def deliveryOptions = order.showDeliveryOptions()
+
+        then:
+        deliveryOptions.availableOptions() == [DeliveryProvider.COURIER, DeliveryProvider.POST_OFFICE]
+
 
     }
 }
