@@ -5,18 +5,18 @@ public class Result {
     private boolean successful;
 
     private Result(boolean isSuccess) {
-      this.successful = isSuccess;
+        this.successful = isSuccess;
     }
 
     public boolean isSuccessful() {
-      return this.successful;
+        return this.successful;
     }
 
     public static Result success() {
-      return new Result(true);
+        return new Result(true);
     }
 
     public static Result failure() {
-      return new Result(false);
+        return new Result(false);
     }
 }

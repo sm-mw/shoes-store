@@ -27,12 +27,12 @@ class OrderSpec extends Specification {
         ex.message() == "Items can not be empty or null."
     }
 
-    def "should apply free delivery policy when order amount is more than 100"() {
+    def "should apply delivery policy"() {
         given:
-        def order = Order.create(apprivedItemsSnapshot)
+        def order = Order.create(approvedItemsSnapshot)
 
         when:
-        def applyResult = order.applyDelivery(DeliveryProvider.COURIER)
+        def applyResult = order.applyDelivery(provider)
 
         then:
         applyResult.isSuccessful()
@@ -44,18 +44,61 @@ class OrderSpec extends Specification {
         deliverResult.deliveryPrice() == deliveryPrice
 
         where:
-        apprivedItemsSnapshot                                | deliveryPrice
+        approvedItemsSnapshot                                | deliveryPrice          | provider
         [new ApprovedItemSnapshot(
                 new CartItemSnapshot(1, 1, 1.0, 0.5), 1),
          new ApprovedItemSnapshot(
                  new CartItemSnapshot(2, 1, 120.0, 120.0), 1),
          new ApprovedItemSnapshot(
-                 new CartItemSnapshot(3, 1, 30.0, 20.0), 1)] | BigDecimal.ZERO
+                 new CartItemSnapshot(3, 1, 30.0, 20.0), 1)] | BigDecimal.ZERO        | DeliveryProvider.POST_OFFICE
+        [new ApprovedItemSnapshot(
+                new CartItemSnapshot(1, 1, 1.0, 0.5), 1),
+         new ApprovedItemSnapshot(
+                 new CartItemSnapshot(2, 1, 120.0, 120.0), 1),
+         new ApprovedItemSnapshot(
+                 new CartItemSnapshot(3, 1, 30.0, 20.0), 1)] | BigDecimal.ZERO        | DeliveryProvider.COURIER
+        [new ApprovedItemSnapshot(
+                new CartItemSnapshot(1, 1, 1.0, 0.5), 1),
+         new ApprovedItemSnapshot(
+                 new CartItemSnapshot(2, 1, 120.0, 120.0), 1),
+         new ApprovedItemSnapshot(
+                 new CartItemSnapshot(3, 1, 30.0, 20.0), 1)] | BigDecimal.ZERO        | DeliveryProvider.PARCEL_LOCKER
         [new ApprovedItemSnapshot(
                 new CartItemSnapshot(1, 1, 1.0, 0.5), 1),
          new ApprovedItemSnapshot(
                  new CartItemSnapshot(2, 1, 2.0, 2.0), 1),
          new ApprovedItemSnapshot(
-                 new CartItemSnapshot(3, 1, 30.0, 20.0), 1)] | BigDecimal.valueOf(100)
+                 new CartItemSnapshot(3, 1, 30.0, 20.0), 1)] | BigDecimal.valueOf(15) | DeliveryProvider.COURIER
+        [new ApprovedItemSnapshot(
+                new CartItemSnapshot(1, 1, 1.0, 0.5), 1),
+         new ApprovedItemSnapshot(
+                 new CartItemSnapshot(2, 1, 2.0, 2.0), 1),
+         new ApprovedItemSnapshot(
+                 new CartItemSnapshot(3, 1, 30.0, 20.0), 1)] | BigDecimal.valueOf(20) | DeliveryProvider.POST_OFFICE
+        [new ApprovedItemSnapshot(
+                new CartItemSnapshot(1, 1, 1.0, 0.5), 1),
+         new ApprovedItemSnapshot(
+                 new CartItemSnapshot(2, 1, 2.0, 2.0), 1),
+         new ApprovedItemSnapshot(
+                 new CartItemSnapshot(3, 1, 30.0, 20.0), 1)] | BigDecimal.valueOf(9)  | DeliveryProvider.PARCEL_LOCKER
+    }
+
+    def "should fail delivery when order amount < 10"() {
+        given:
+        def approvedItems = [new ApprovedItemSnapshot(
+                new CartItemSnapshot(1, 1, 1.0, 0.5), 1),
+                             new ApprovedItemSnapshot(
+                 new CartItemSnapshot(2, 1, 2.0, 2.0), 1),
+                             new ApprovedItemSnapshot(
+                 new CartItemSnapshot(3, 1, 3.0, 3.0), 1)]
+
+        def order = Order.create(approvedItems)
+
+        when:
+        def applyResult = order.applyDelivery(DeliveryProvider.COURIER)
+
+        then:
+        !applyResult.isSuccessful()
+
     }
 }

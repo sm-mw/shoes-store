@@ -5,7 +5,6 @@ import org.sm.mw.commons.Result;
 import org.sm.mw.order.delivery.*;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Order implements Deliverable {
@@ -31,10 +30,10 @@ public class Order implements Deliverable {
     Result applyDelivery(DeliveryProvider deliveryProvider) {
         BigDecimal itemsSum = itemsSum();
 
-        if (itemsSum.compareTo(BigDecimal.valueOf(100.00)) > 0) {
+        if (BigDecimal.valueOf(100.00).compareTo(itemsSum) < 0) {
             this.deliverDetails = new FreeDeliveryPolicy().deliver(this);
             return Result.success();
-        } else if (itemsSum.compareTo(BigDecimal.valueOf(10.00)) > 0){
+        } else if (BigDecimal.valueOf(10.00).compareTo(itemsSum) < 0) {
             this.deliverDetails = new PaidDeliveryPolicy(deliveryProvider).deliver(this);
             return Result.success();
         }
@@ -55,9 +54,9 @@ public class Order implements Deliverable {
     @Override
     public BigDecimal itemsSum() {
         return items.stream()
-                    .map(item -> item.cartItem().promoPrice())
-                    .reduce(BigDecimal::add)
-                    .orElse(BigDecimal.ZERO);
+                .map(item -> item.cartItem().promoPrice())
+                .reduce(BigDecimal::add)
+                .orElse(BigDecimal.ZERO);
     }
 
     @Override
